@@ -1,0 +1,36 @@
+[
+  {
+    "namespace": "closeToTray",
+    "description": "Hide Thunderbird in the system tray when its main window is closed.",
+    "functions": [
+      {
+        "name": "getState",
+        "type": "function",
+        "description": "Return whether close-to-tray is available and enabled.",
+        "async": true,
+        "parameters": [],
+        "returns": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "supported": { "type": "boolean" },
+            "hiddenCount": { "type": "integer" }
+          }
+        }
+      },
+      {
+        "name": "setEnabled",
+        "type": "function",
+        "description": "Turn close-to-tray on or off.",
+        "async": true,
+        "parameters": [
+          {
+            "name": "enabled",
+            "type": "boolean",
+            "description": "True to hide the main window in the tray when it is closed."
+          }
+        ]
+      }
+    ]
+  }
+]

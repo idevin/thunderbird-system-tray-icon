@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Close to Tray</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Close to Tray</h1>
+      <p class="lead">
+        Choose what happens when you close Thunderbird's main window.
+      </p>
+
+      <label class="option" for="minimize-to-tray">
+        <input id="minimize-to-tray" type="checkbox" />
+        <span>
+          <span class="option-title">When Thunderbird is closed, move it to the system tray</span>
+          <span class="option-help">
+            While this option is on, the tray icon stays visible. Closing the
+            main window hides Thunderbird there. Click the icon, or choose
+            Show Thunderbird, to open the window again. Choose Quit Thunderbird
+            from the tray menu, or File → Quit, to exit.
+          </span>
+        </span>
+      </label>
+
+      <p id="status" role="status"></p>
+      <p id="error" class="error" hidden></p>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>
