@@ -7,48 +7,62 @@ from pathlib import Path
 
 BLUE = (19, 115, 230, 255)
 WHITE = (255, 255, 255, 255)
-FLAP = (232, 242, 255, 255)
+FLAP = (214, 230, 250, 255)
+CLEAR = (0, 0, 0, 0)
 
 
 def in_round_rect(x, y, left, top, right, bottom, radius):
     if x < left or y < top or x >= right or y >= bottom:
         return False
-    cx = left + radius if x < left + radius else right - radius - 1 if x >= right - radius else x
-    cy = top + radius if y < top + radius else bottom - radius - 1 if y >= bottom - radius else y
-    if cx == x and cy == y:
+    if radius <= 0:
         return True
-    return (x - cx) ** 2 + (y - cy) ** 2 <= radius ** 2
+    if x < left + radius and y < top + radius:
+        return (x - (left + radius)) ** 2 + (y - (top + radius)) ** 2 <= radius ** 2
+    if x >= right - radius and y < top + radius:
+        return (x - (right - radius)) ** 2 + (y - (top + radius)) ** 2 <= radius ** 2
+    if x < left + radius and y >= bottom - radius:
+        return (x - (left + radius)) ** 2 + (y - (bottom - radius)) ** 2 <= radius ** 2
+    if x >= right - radius and y >= bottom - radius:
+        return (x - (right - radius)) ** 2 + (y - (bottom - radius)) ** 2 <= radius ** 2
+    return True
 
 
-def pixel(x, y, size):
-    margin = max(1, round(size * 0.06))
-    radius = max(2, round(size * 0.22))
-    if not in_round_rect(x, y, margin, margin, size - margin, size - margin, radius):
-        return (0, 0, 0, 0)
+def color_at(x, y, size):
+    """x and y are pixel-center coordinates in a `size` square."""
+    u = (x / size) * 96
+    v = (y / size) * 96
+    if not in_round_rect(u, v, 0, 0, 96, 96, 22):
+        return CLEAR
 
-    def sx(value):
-        return margin + (value / 48) * (size - 2 * margin)
-
-    left, right = sx(10), sx(38)
-    top, bottom = sx(16), sx(34)
-    mid_x, mid_y = sx(24), sx(25)
-    flap_y = sx(17)
-
-    # Envelope body.
-    if left <= x < right and top <= y < bottom:
-        # Flap: a triangle pointing down, drawn above the body center.
-        if y <= mid_y and abs(x - mid_x) <= (y - flap_y) * (mid_x - left) / max(1, (mid_y - flap_y)):
+    # Square closed envelope: the flap folds down to the center.
+    left, right = 22, 74
+    top, bottom = 22, 74
+    mid_x, mid_y = 48, 48
+    if in_round_rect(u, v, left, top, right, bottom, 4):
+        span = mid_y - top
+        reach = ((right - left) / 2) * (mid_y - v) / span if span else 0
+        if top <= v <= mid_y and abs(u - mid_x) <= reach:
             return FLAP
         return WHITE
     return BLUE
 
 
 def write_png(path, size):
+    samples = 4
     rows = []
     for y in range(size):
         row = bytearray([0])
         for x in range(size):
-            row.extend(pixel(x, y, size))
+            acc = [0, 0, 0, 0]
+            for sy in range(samples):
+                for sx in range(samples):
+                    px = x + (sx + 0.5) / samples
+                    py = y + (sy + 0.5) / samples
+                    color = color_at(px, py, size)
+                    for i in range(4):
+                        acc[i] += color[i]
+            count = samples * samples
+            row.extend(round(channel / count) for channel in acc)
         rows.append(bytes(row))
     raw = b"".join(rows)
 
@@ -64,7 +78,13 @@ def write_png(path, size):
 
 def main():
     here = Path(__file__).resolve().parent
-    for size, name in ((32, "icon-32.png"), (48, "icon-48.png"), (96, "icon-96.png"), (128, "tray.png")):
+    for size, name in (
+        (32, "icon-32.png"),
+        (48, "icon-48.png"),
+        (96, "icon-96.png"),
+        (128, "icon-128.png"),
+        (128, "tray.png"),
+    ):
         write_png(here / name, size)
 
 
