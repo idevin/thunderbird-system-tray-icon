@@ -6,7 +6,7 @@ This add-on runs on Linux with Thunderbird 128 through 157. The tray icon needs 
 
 ## Install from a file
 
-1. Download [`releases/close-to-tray-1.0.2.xpi`](releases/close-to-tray-1.0.2.xpi).
+1. Download [`releases/close-to-tray-1.0.3.xpi`](releases/close-to-tray-1.0.3.xpi).
 2. In Thunderbird, open the menu and choose **Add-ons and Themes**.
 3. Click the gear icon and choose **Install Add-on From File…**.
 4. Select the downloaded `.xpi` file.

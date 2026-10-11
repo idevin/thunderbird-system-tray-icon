@@ -516,6 +516,20 @@ var GtkDelete = {
     }
     this.hooks = [];
   },
+
+  // Application shutdown can destroy the GTK widgets before this add-on runs.
+  // Disconnecting their handlers then crashes in g_signal_handler_disconnect.
+  abandon() {
+    for (const timer of this.timers) {
+      try {
+        timer.cancel();
+      } catch (error) {
+        Tray.log(error);
+      }
+    }
+    this.timers = [];
+    this.hooks = [];
+  },
 };
 
 var Tray = {
@@ -592,7 +606,11 @@ var Tray = {
     this.stopping = true;
     this.explicitQuit = true;
     GtkDelete.setArmed(false);
-    GtkDelete.disconnectAll();
+    if (isAppShutdown) {
+      GtkDelete.abandon();
+    } else {
+      GtkDelete.disconnectAll();
+    }
     try {
       this.timer?.cancel();
     } catch (error) {
