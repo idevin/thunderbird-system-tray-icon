@@ -10,6 +10,7 @@ Commands on stdin:
 
 Events on stdout:
   {"event": "ready"}
+  {"event": "toggle"}
   {"event": "show"}
   {"event": "quit"}
   {"event": "error", "message": "..."}
@@ -222,7 +223,7 @@ def main():
     def on_item_method(_connection, _sender, _path, _interface, method, parameters, invocation, *_unused):
         try:
             if method in ("Activate", "SecondaryActivate"):
-                send({"event": "show"})
+                send({"event": "toggle"})
             elif method == "ContextMenu":
                 pass
             invocation.return_value(None)

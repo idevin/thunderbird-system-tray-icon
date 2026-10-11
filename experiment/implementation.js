@@ -693,6 +693,7 @@ var Tray = {
     win.addEventListener("close", handler, true);
     this.installGtkHook(win);
     this.wrapRequestClose(win);
+    this.openingMain = false;
     let href = "";
     try {
       href = win.location.href;
@@ -835,14 +836,61 @@ var Tray = {
     }
   },
 
-  restore() {
-    const windows = [...this.hidden];
-    if (!windows.length) {
-      this.openMainWindow();
-    } else {
-      for (const win of windows) {
-        this.show(win, true);
+  mainWindows() {
+    const windows = [];
+    const seen = new Set();
+    this.forEachWindow(win => {
+      if (win && !win.closed && this.windowType(win) === "mail:3pane") {
+        windows.push(win);
+        seen.add(win);
       }
+    });
+    for (const win of this.hidden) {
+      if (win && !win.closed && !seen.has(win)) {
+        windows.push(win);
+      }
+    }
+    return windows;
+  },
+
+  isVisible(win) {
+    if (!win || win.closed || this.hidden.has(win)) {
+      return false;
+    }
+    try {
+      if (win.windowState === win.STATE_MINIMIZED) {
+        return false;
+      }
+      return !!this.baseWindow(win).visibility;
+    } catch (error) {
+      return false;
+    }
+  },
+
+  toggleFromTray() {
+    const visible = this.mainWindows().filter(win => this.isVisible(win));
+    if (visible.length) {
+      for (const win of visible) {
+        this.beginHide(win);
+      }
+      return;
+    }
+    this.revealFromTray();
+  },
+
+  revealFromTray() {
+    const windows = this.mainWindows();
+    if (!windows.length) {
+      if (this.openingMain) {
+        return;
+      }
+      this.openingMain = true;
+      this.openMainWindow();
+      return;
+    }
+    this.openingMain = false;
+    for (const win of windows) {
+      this.show(win, true);
     }
   },
 
@@ -1132,8 +1180,10 @@ var Tray = {
       } else {
         this.log(error.message);
       }
+    } else if (message.event === "toggle") {
+      this.toggleFromTray();
     } else if (message.event === "show") {
-      this.restore();
+      this.revealFromTray();
     } else if (message.event === "quit") {
       this.quitFromTray();
     }
@@ -1166,7 +1216,7 @@ var Tray = {
         "The tray icon closed unexpectedly. Thunderbird's window was restored.\n\n" +
           error
       );
-      this.restore();
+      this.revealFromTray();
     });
   },
 
