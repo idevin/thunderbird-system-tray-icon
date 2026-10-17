@@ -15,6 +15,9 @@ var { NetUtil } = ChromeUtils.importESModule(
 var { Subprocess } = ChromeUtils.importESModule(
   "resource://gre/modules/Subprocess.sys.mjs"
 );
+var { ComponentUtils } = ChromeUtils.importESModule(
+  "resource://gre/modules/ComponentUtils.sys.mjs"
+);
 
 var PREF = "extensions.closeToTray.enabled";
 
@@ -586,6 +589,7 @@ var Tray = {
     Services.wm.addListener(this.wmListener);
     Services.obs.addObserver(this, "quit-application-requested");
     this.forEachWindow(win => this.attach(win));
+    RemoteLaunch.register();
     // The main window can open before its docShell is ready, or just after
     // this startup notification. Check again once the event loop turns.
     const rescan = () => this.forEachWindow(win => this.attach(win));
@@ -624,6 +628,7 @@ var Tray = {
       this.show(win, false);
     }
     this.hidden.clear();
+    RemoteLaunch.unregister();
     this.forEachWindow(win => this.detach(win));
     try {
       Services.wm.removeListener(this.wmListener);
@@ -711,6 +716,7 @@ var Tray = {
     win.addEventListener("close", handler, true);
     this.installGtkHook(win);
     this.wrapRequestClose(win);
+    this.wrapFocus(win);
     this.openingMain = false;
     let href = "";
     try {
@@ -731,6 +737,14 @@ var Tray = {
       this.log(error);
     }
     delete win.__closeToTrayHandler;
+    if (win.__closeToTrayFocusWrapped) {
+      try {
+        delete win.focus;
+      } catch (error) {
+        this.log(error);
+      }
+      delete win.__closeToTrayFocusWrapped;
+    }
   },
 
   shouldIntercept(win) {
@@ -756,6 +770,48 @@ var Tray = {
       win.requestWindowClose = replacement;
     }
     win.__closeToTrayRequestWrapped = true;
+  },
+
+  // A second launch (start menu, pinned icon) asks the running instance to
+  // focus the main window. focus() does not undo visibility = false, so the
+  // click looks like it did nothing. Show the window, then focus it.
+  wrapFocus(win) {
+    if (win.__closeToTrayFocusWrapped) {
+      return;
+    }
+    const original = win.focus.bind(win);
+    const replacement = () => {
+      if (Tray.hidden.has(win) && Tray.shouldIntercept(win)) {
+        Tray.log("focus requested while the window is hidden");
+        Tray.show(win, false);
+      }
+      original();
+    };
+    try {
+      Cu.exportFunction(replacement, win, { defineAs: "focus" });
+    } catch (error) {
+      try {
+        win.focus = replacement;
+      } catch (assignError) {
+        this.log("could not wrap focus: " + assignError);
+        return;
+      }
+    }
+    win.__closeToTrayFocusWrapped = true;
+  },
+
+  onRemoteLaunch(cmdLine) {
+    if (!this.supported || !this.enabled || this.explicitQuit || this.stopping) {
+      return;
+    }
+    if (cmdLine.state === Ci.nsICommandLine.STATE_INITIAL_LAUNCH) {
+      return;
+    }
+    if (this.mainWindows().some(win => this.isVisible(win))) {
+      return;
+    }
+    this.log("remote launch, showing the main window");
+    this.revealFromTray();
   },
 
   installGtkHook(win) {
@@ -1252,6 +1308,75 @@ var Tray = {
       return;
     }
     proc.kill().catch(error => this.log("kill tray: " + error));
+  },
+};
+
+// Runs when a second Thunderbird process hands its command line to this one,
+// which is what the start menu and a pinned icon do while the window is hidden.
+var RemoteLaunch = {
+  CLASS_ID: Components.ID("{c4e8a1d2-7b63-4f05-9e18-2a6d0c5b7f34}"),
+  CONTRACT: "@close-to-tray/command-line-handler;1",
+  CATEGORY: "a-close-to-tray",
+  factory: null,
+
+  Handler: class {
+    QueryInterface = ChromeUtils.generateQI(["nsICommandLineHandler"]);
+
+    handle(cmdLine) {
+      try {
+        Tray.onRemoteLaunch(cmdLine);
+      } catch (error) {
+        Tray.log("remote launch failed: " + error);
+      }
+    }
+
+    helpInfo = "";
+  },
+
+  register() {
+    if (this.factory) {
+      return;
+    }
+    try {
+      this.factory = ComponentUtils.generateSingletonFactory(this.Handler);
+      const registrar = Components.manager.QueryInterface(Ci.nsIComponentRegistrar);
+      registrar.registerFactory(
+        this.CLASS_ID,
+        "Close to Tray command line handler",
+        this.CONTRACT,
+        this.factory
+      );
+      Services.catMan.addCategoryEntry(
+        "command-line-handler",
+        this.CATEGORY,
+        this.CONTRACT,
+        false,
+        true
+      );
+      Tray.log("watching launcher launches");
+    } catch (error) {
+      this.factory = null;
+      Tray.log("could not watch launcher launches: " + error);
+    }
+  },
+
+  unregister() {
+    if (!this.factory) {
+      return;
+    }
+    const factory = this.factory;
+    this.factory = null;
+    try {
+      Services.catMan.deleteCategoryEntry("command-line-handler", this.CATEGORY, false);
+    } catch (error) {
+      Tray.log(error);
+    }
+    try {
+      const registrar = Components.manager.QueryInterface(Ci.nsIComponentRegistrar);
+      registrar.unregisterFactory(this.CLASS_ID, factory);
+    } catch (error) {
+      Tray.log(error);
+    }
   },
 };
 
