@@ -2,11 +2,11 @@
 
 When you close Thunderbird's main window, Thunderbird stays running and a system tray icon remains visible. Click the icon to hide the open window or show that same window again. Opening Thunderbird from the application menu or a pinned icon shows that window too. Quit from the tray menu, or with **File → Quit**.
 
-This add-on runs on Linux with Thunderbird 128 through 157. The tray icon needs Python 3 with PyGObject (`gi`) and a StatusNotifier tray, such as KDE Plasma or Xfce.
+This add-on runs on Linux with Thunderbird 128 through 158. The tray icon needs Python 3 with PyGObject (`gi`) and a StatusNotifier tray, such as KDE Plasma or Xfce.
 
 ## Install from a file
 
-1. Download [`releases/close-to-tray-1.0.4.xpi`](releases/close-to-tray-1.0.4.xpi).
+1. Download [`releases/close-to-tray-1.0.5.xpi`](releases/close-to-tray-1.0.5.xpi).
 2. In Thunderbird, open the menu and choose **Add-ons and Themes**.
 3. Click the gear icon and choose **Install Add-on From File…**.
 4. Select the downloaded `.xpi` file.

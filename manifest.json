@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Close to Tray",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "homepage_url": "https://github.com/idevin/thunderbird-system-tray-icon",
   "description": "When you close Thunderbird's main window, keep it running in the system tray instead of quitting. https://creotech.org",
   "author": "Ilya Devin",
@@ -9,7 +9,7 @@
     "gecko": {
       "id": "close-to-tray@localhost",
       "strict_min_version": "128.0",
-      "strict_max_version": "157.*"
+      "strict_max_version": "158.*"
     }
   },
   "icons": {
