@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Draw the Close to Tray icon. Run from this directory to refresh the PNGs."""
+"""Draw the Close to Tray icon: an envelope set down into a tray.
+
+Run from this directory to refresh the PNGs.
+"""
 
 import struct
 import zlib
@@ -27,6 +30,18 @@ def in_round_rect(x, y, left, top, right, bottom, radius):
     return True
 
 
+def envelope_part(u, v, left, top, right, bottom):
+    if not in_round_rect(u, v, left, top, right, bottom, 4):
+        return None
+    mid_x = (left + right) / 2
+    mid_y = (top + bottom) / 2
+    span = mid_y - top
+    reach = ((right - left) / 2) * (mid_y - v) / span if span else 0
+    if top <= v <= mid_y and abs(u - mid_x) <= reach:
+        return FLAP
+    return WHITE
+
+
 def color_at(x, y, size):
     """x and y are pixel-center coordinates in a `size` square."""
     u = (x / size) * 96
@@ -34,15 +49,15 @@ def color_at(x, y, size):
     if not in_round_rect(u, v, 0, 0, 96, 96, 22):
         return CLEAR
 
-    # Square closed envelope: the flap folds down to the center.
-    left, right = 22, 74
-    top, bottom = 22, 74
-    mid_x, mid_y = 48, 48
-    if in_round_rect(u, v, left, top, right, bottom, 4):
-        span = mid_y - top
-        reach = ((right - left) / 2) * (mid_y - v) / span if span else 0
-        if top <= v <= mid_y and abs(u - mid_x) <= reach:
-            return FLAP
+    # Envelope sitting in the opening, above the floor of the tray.
+    part = envelope_part(u, v, 24, 16, 72, 64)
+    if part is not None:
+        return part
+
+    # Tray: a thick U, open at the top.
+    outer = in_round_rect(u, v, 8, 54, 88, 84, 8)
+    hole = in_round_rect(u, v, 16, 44, 80, 74, 6)
+    if outer and not hole:
         return WHITE
     return BLUE
 
