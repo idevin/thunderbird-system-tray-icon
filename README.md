@@ -22,3 +22,5 @@ The permission covers the whole application because the add-on has to intercept 
 4. When Thunderbird asks for access, choose **Add**.
 
 The catalog also lists **Close to Tray (for Windows)**. That is a separate add-on. This package is the Linux tray icon.
+
+[![Give me a beer](https://img.shields.io/badge/Give%20me%20a%20beer-%F0%9F%8D%BA-FFDD00)](https://creotech.org/donate)
